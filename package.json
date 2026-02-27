@@ -1,0 +1,36 @@
+{
+  "name": "mini-agent-ts",
+  "version": "0.1.0",
+  "description": "TypeScript recreation of Mini-Agent core architecture",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mini-agent-ts": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "example:01": "tsx examples/01_basic_tools.ts",
+    "example:02": "tsx examples/02_simple_agent.ts",
+    "example:03": "tsx examples/03_session_notes.ts",
+    "example:04": "tsx examples/04_full_agent.ts",
+    "example:05": "tsx examples/05_provider_selection.ts",
+    "example:06": "tsx examples/06_tool_schema_demo.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.17.1",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "dotenv": "^16.6.1",
+    "js-yaml": "^4.1.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
+  }
+}

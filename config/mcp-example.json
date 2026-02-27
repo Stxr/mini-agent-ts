@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "memory": {
+      "description": "Memory - Knowledge graph memory system",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "disabled": true
+    },
+    "minimax_search": {
+      "description": "MiniMax Search",
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/MiniMax-AI/minimax_search",
+        "minimax-search"
+      ],
+      "env": {
+        "JINA_API_KEY": "",
+        "SERPER_API_KEY": "",
+        "MINIMAX_API_KEY": ""
+      },
+      "disabled": true
+    }
+  }
+}
