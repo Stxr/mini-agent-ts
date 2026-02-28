@@ -8,12 +8,9 @@ import { Agent } from "./agent.js";
 import { getAppConfig } from "./config/env.js";
 import { loadSystemPrompt } from "./config/systemPrompt.js";
 import { LLMClient } from "./llm/llmClient.js";
+import { createWorkspaceTools, loadSharedToolsFromEnv } from "./runtime/toolSetup.js";
 import type { Tool } from "./tools/base.js";
-import { BashTool } from "./tools/bashTool.js";
-import { EditFileTool, ReadFileTool, WriteFileTool } from "./tools/fileTools.js";
-import { cleanupMcpConnections, loadMcpToolsAsync } from "./tools/mcpLoader.js";
-import { RecallNotesTool, RecordNoteTool } from "./tools/noteTool.js";
-import { createSkillTools } from "./tools/skillTool.js";
+import { cleanupMcpConnections } from "./tools/mcpLoader.js";
 
 interface RuntimeContext {
   workspace: string;
@@ -69,47 +66,27 @@ async function createAgent(workspace: string): Promise<{
 }> {
   const { apiKey, apiBase, model, provider } = getAppConfig();
   const llm = new LLMClient({ apiKey, apiBase, model, provider });
-  const memoryFile = resolve(workspace, ".agent_memory.json");
-  let skillsMetadata = "";
   const startupLines: string[] = [];
-
-  const tools: Tool[] = [
-    new ReadFileTool(workspace),
-    new WriteFileTool(workspace),
-    new EditFileTool(workspace),
-    new BashTool(workspace),
-    new RecordNoteTool(memoryFile),
-    new RecallNotesTool(memoryFile)
-  ];
+  const shared = await loadSharedToolsFromEnv();
+  const tools: Tool[] = [...createWorkspaceTools(workspace), ...shared.tools];
   startupLines.push(`${Colors.GREEN}✅ Loaded file operation tools${Colors.RESET} (workspace: ${workspace})`);
   startupLines.push(`${Colors.GREEN}✅ Loaded session note tool${Colors.RESET}`);
-
   const enableMcp = (process.env.MINI_AGENT_ENABLE_MCP ?? "").toLowerCase() === "true";
-  const mcpConfigPath = process.env.MINI_AGENT_MCP_CONFIG ?? "config/mcp.json";
   if (enableMcp) {
-    const mcpTools = await loadMcpToolsAsync(mcpConfigPath);
-    if (mcpTools.length > 0) {
-      tools.push(...mcpTools);
-      startupLines.push(`${Colors.GREEN}✅ Loaded ${mcpTools.length} MCP tools${Colors.RESET}`);
-    } else {
-      startupLines.push(`${Colors.DIM}⚠️  MCP enabled but no MCP tools loaded${Colors.RESET}`);
-    }
+    startupLines.push(
+      shared.mcpToolCount > 0
+        ? `${Colors.GREEN}✅ Loaded ${shared.mcpToolCount} MCP tools${Colors.RESET}`
+        : `${Colors.DIM}⚠️  MCP enabled but no MCP tools loaded${Colors.RESET}`
+    );
   }
 
-  const enableSkills = (process.env.MINI_AGENT_ENABLE_SKILLS ?? "").toLowerCase() === "true";
-  const skillsDir = process.env.MINI_AGENT_SKILLS_DIR ?? "./skills";
-  let loadedSkillNames: string[] = [];
-  let skillsCount = 0;
-  if (enableSkills) {
-    const { tools: skillTools, loader } = await createSkillTools(skillsDir);
-    tools.push(...skillTools);
-    skillsMetadata = loader?.getSkillsMetadataPrompt() ?? "";
-    skillsCount = loader?.listSkills().length ?? 0;
-    loadedSkillNames = loader?.listSkills() ?? [];
+  const loadedSkillNames = shared.loadedSkillNames;
+  const skillsCount = loadedSkillNames.length;
+  if (skillsCount > 0) {
     startupLines.push(`${Colors.GREEN}✅ Loaded skill tool${Colors.RESET} (get_skill)`);
   }
 
-  const systemPrompt = await loadSystemPrompt(workspace, skillsMetadata);
+  const systemPrompt = await loadSystemPrompt(workspace, shared.skillsMetadata);
   const systemPromptPath = resolve(process.cwd(), "config/system_prompt.md");
   startupLines.push(`${Colors.GREEN}✅ Loaded system prompt${Colors.RESET} (from: ${systemPromptPath})`);
   if (skillsCount > 0) {
@@ -127,8 +104,8 @@ async function createAgent(workspace: string): Promise<{
     toolCount: tools.length,
     model,
     startupLines,
-    skillsEnabled: enableSkills,
-    skillsDir,
+    skillsEnabled: shared.skillsEnabled,
+    skillsDir: shared.skillsDir,
     loadedSkillNames
   };
 }

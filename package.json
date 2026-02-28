@@ -5,11 +5,13 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "mini-agent-ts": "dist/cli.js"
+    "mini-agent-ts": "dist/cli.js",
+    "mini-agent-ts-acp": "dist/acp/server.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
+    "acp:dev": "tsx src/acp/server.ts",
     "test": "vitest run",
     "example:01": "tsx examples/01_basic_tools.ts",
     "example:02": "tsx examples/02_simple_agent.ts",

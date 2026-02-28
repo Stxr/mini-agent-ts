@@ -23,7 +23,7 @@ const defaultTimeoutConfig: MCPTimeoutConfig = {
   sseReadTimeout: 120
 };
 
-interface MCPServerConfig {
+export interface MCPServerConfig {
   type?: string;
   command?: string;
   args?: string[];
@@ -38,6 +38,11 @@ interface MCPServerConfig {
 
 interface MCPConfigFile {
   mcpServers?: Record<string, MCPServerConfig>;
+}
+
+export interface MCPServerEntry {
+  name: string;
+  config: MCPServerConfig;
 }
 
 interface MCPListToolsResponse {
@@ -90,6 +95,13 @@ export function determineConnectionType(serverConfig: MCPServerConfig): Connecti
     return "streamable_http";
   }
   return "stdio";
+}
+
+function normalizeServerEntries(entries: Record<string, MCPServerConfig> | MCPServerEntry[]): MCPServerEntry[] {
+  if (Array.isArray(entries)) {
+    return entries;
+  }
+  return Object.entries(entries).map(([name, config]) => ({ name, config }));
 }
 
 function resolveMcpConfigPath(configPath: string): string | null {
@@ -319,37 +331,40 @@ export async function loadMcpToolsAsync(configPath = "config/mcp.json"): Promise
   try {
     const raw = await readFile(resolvedPath, "utf-8");
     const parsed = JSON.parse(raw) as MCPConfigFile;
-    const servers = parsed.mcpServers ?? {};
-
-    if (Object.keys(servers).length === 0) {
-      console.log("No MCP servers configured");
-      return [];
-    }
-
-    const tools: Tool[] = [];
-
-    for (const [name, serverConfig] of Object.entries(servers)) {
-      if (serverConfig.disabled) {
-        console.log(`Skipping disabled server: ${name}`);
-        continue;
-      }
-
-      const connection = new MCPServerConnection(name, serverConfig);
-      const ok = await connection.connect();
-      if (!ok) {
-        continue;
-      }
-
-      connections.push(connection);
-      tools.push(...connection.getTools());
-    }
-
-    console.log(`\nTotal MCP tools loaded: ${tools.length}`);
-    return tools;
+    return await loadMcpToolsFromEntries(parsed.mcpServers ?? {});
   } catch (error) {
     console.log(`Error loading MCP config: ${error instanceof Error ? error.message : String(error)}`);
     return [];
   }
+}
+
+export async function loadMcpToolsFromEntries(entries: Record<string, MCPServerConfig> | MCPServerEntry[]): Promise<Tool[]> {
+  const servers = normalizeServerEntries(entries);
+  if (servers.length === 0) {
+    console.log("No MCP servers configured");
+    return [];
+  }
+
+  const tools: Tool[] = [];
+
+  for (const { name, config } of servers) {
+    if (config.disabled) {
+      console.log(`Skipping disabled server: ${name}`);
+      continue;
+    }
+
+    const connection = new MCPServerConnection(name, config);
+    const ok = await connection.connect();
+    if (!ok) {
+      continue;
+    }
+
+    connections.push(connection);
+    tools.push(...connection.getTools());
+  }
+
+  console.log(`\nTotal MCP tools loaded: ${tools.length}`);
+  return tools;
 }
 
 export async function cleanupMcpConnections(): Promise<void> {
