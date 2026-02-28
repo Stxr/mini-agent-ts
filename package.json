@@ -10,6 +10,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
+    "test": "vitest run",
     "example:01": "tsx examples/01_basic_tools.ts",
     "example:02": "tsx examples/02_simple_agent.ts",
     "example:03": "tsx examples/03_session_notes.ts",
@@ -22,6 +23,7 @@
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
+    "@agentclientprotocol/sdk": "^0.14.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "dotenv": "^16.6.1",
     "js-yaml": "^4.1.1",
@@ -31,6 +33,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.3.0",
     "tsx": "^4.20.4",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
   }
 }
