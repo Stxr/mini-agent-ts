@@ -48,6 +48,48 @@ pnpm run dev -- --workspace /path/to/workspace --task "read README and summarize
   - `MINI_AGENT_ENABLE_SKILLS=true` 时加载 `get_skill` 工具
   - `MINI_AGENT_SKILLS_DIR` 指定 skills 目录（默认 `./skills`）
 
+## ACP 支持
+
+已新增 ACP（Agent Client Protocol）适配层，可将 `mini-agent-ts` 作为 ACP agent 接入支持 ACP 的编辑器。
+
+开发模式运行：
+
+```bash
+pnpm run acp:dev
+```
+
+构建后运行：
+
+```bash
+pnpm run build
+./dist/acp/server.js
+```
+
+如果以包方式安装，可使用二进制：
+
+```bash
+mini-agent-ts-acp
+```
+
+Zed `settings.json` 示例：
+
+```json
+{
+  "agent_servers": {
+    "mini-agent-ts": {
+      "command": "/absolute/path/to/mini-agent-ts-acp"
+    }
+  }
+}
+```
+
+ACP 适配层包含：
+- stdio/NDJSON transport
+- session initialize / newSession / prompt / cancel
+- agent message / thought / tool call updates
+- 每个 session 可附带 `mcpServers`，并复用现有 MCP loader
+- 复用现有工具 schema 与工具执行链路
+
 交互命令：
 - `/help`
 - `/clear`
